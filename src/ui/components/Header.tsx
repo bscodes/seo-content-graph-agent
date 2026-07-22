@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button className="btn btn-secondary" onClick={onUploadCustom}>
           <Upload size={14} />
-          Upload Sitemap JSON
+          Upload JSON Inventory
         </button>
 
         <button className="btn btn-primary" onClick={onRunAnalysis}>

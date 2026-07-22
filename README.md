@@ -12,7 +12,7 @@
 
 `seo-content-graph-agent` is an engineering-grade AI agent designed for **Programmatic SEO** and **Search Engine Architecture**. 
 
-Modern content teams produce dozens of articles weekly, but often fail to maximize organic search authority due to fragmented, manual internal linking. This agent ingests site sitemaps, computes vector semantic similarity matrices across all pages, clusters articles into topic hubs, and computes optimal internal link graphs that direct internal PageRank to strategic pillar pages.
+A fully autonomous state-machine agent that ingests JSON content inventories, mathematically clusters topics into strict semantic silos using embedding proximity, and rewrites your site’s internal links to perfectly align with Google's Knowledge Graph.
 
 ---
 
@@ -22,7 +22,7 @@ The agent executes a deterministic 3-node state machine workflow:
 
 ```mermaid
 graph TD
-    A[Node A: Sitemap Ingestion & Zod Validation] -->|Extract URL, Title, Keywords & Vector Embedding| B[Node B: Semantic Clustering Engine]
+    A[Node A: JSON Inventory Ingestion & Zod Validation] -->|Extract URL, Title, Keywords & Vector Embedding| B[Node B: Semantic Clustering Engine]
     B -->|Sparse Top-K Cosine Edges & PageRank Centrality| C[Node C: Interlink Optimizer]
     C -->|Invariant Check: Source != Target| D[Output: Content Topology Graph & Copyable Link Snippets]
 
@@ -37,7 +37,7 @@ graph TD
 1. **Automated Internal PageRank Efficiency**: Directs search crawler equity from low-traffic orphan pages to revenue-driving pillar content automatically, measuring exact PR flow improvements.
 2. **Contextual Semantic Authority Clustering**: Eliminates keyword cannibalization by grouping articles into focused topical silos that rank higher on Google's Knowledge Graph.
 3. **High-Converting Keyword Anchors**: Replaces generic "click here" links with target keyword anchors that boost SERP keyword relevancy.
-4. **Zero-Touch Programmatic Scale**: Reduces manual SEO audits from 20+ hours per month to a single automated pipeline command. Built for programmatic-scale processing via $O(N \\times K)$ sparse graph logic, eliminating quadratic memory exhaustion on massive sitemaps.
+4. **Zero-Touch Programmatic Scale**: Reduces manual SEO audits from 20+ hours per month to a single automated pipeline command. Built for programmatic-scale processing via $O(N \\times K)$ sparse graph logic, eliminating quadratic memory exhaustion on massive inventories.
 
 ---
 
@@ -60,14 +60,14 @@ Open [http://localhost:3000](http://localhost:3000) to interact with the topolog
 
 ### 2. CLI Usage (`seo-graph analyze`)
 
-Analyze any custom sitemap JSON or the built-in SaaS dataset directly from your terminal:
+Analyze any custom JSON content inventory or the built-in SaaS dataset directly from your terminal:
 
 ```bash
 # Run CLI on default sample dataset
 npm run cli -- analyze
 
-# Run on custom sitemap with 0.75 similarity threshold
-npm run cli -- analyze --sitemap=sitemap.json --threshold=0.75 --output=link-recommendations.json
+# Run on custom inventory with 0.75 similarity threshold
+npm run cli -- analyze --inventory=inventory.json --threshold=0.75 --output=link-recommendations.json
 ```
 
 ---

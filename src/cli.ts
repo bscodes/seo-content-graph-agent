@@ -12,13 +12,13 @@ const program = new Command();
 
 program
   .name('seo-graph')
-  .description('SEO Content Graph Agent - Ingest sitemaps, cluster semantic topics, and generate internal link graphs')
+  .description('SEO Content Graph Agent - Ingest content inventories, cluster semantic topics, and generate internal link graphs')
   .version('1.0.0');
 
 program
   .command('analyze')
-  .description('Analyze sitemap and output internal link recommendations')
-  .option('-s, --sitemap <path>', 'Path to sitemap JSON file')
+  .description('Analyze content inventory and output internal link recommendations')
+  .option('-i, --inventory <path>', 'Path to content inventory JSON file')
   .option('-t, --threshold <number>', 'Similarity threshold (0.0 - 1.0)', '0.65')
   .option('-o, --output <path>', 'Output JSON file path')
   .action(async (options) => {
@@ -28,24 +28,24 @@ program
 
       let sitemapData: SitemapInput = SAMPLE_SITEMAP;
 
-      if (options.sitemap) {
-        if (fs.existsSync(options.sitemap)) {
-          const raw = fs.readFileSync(options.sitemap, 'utf-8');
+      if (options.inventory) {
+        if (fs.existsSync(options.inventory)) {
+          const raw = fs.readFileSync(options.inventory, 'utf-8');
           sitemapData = JSON.parse(raw);
-          console.log(`✓ Loaded custom sitemap from ${options.sitemap}`);
+          console.log(`✓ Loaded custom content inventory from ${options.inventory}`);
         } else {
-          console.error(`❌ Error: Sitemap file not found at ${options.sitemap}`);
+          console.error(`❌ Error: Content inventory file not found at ${options.inventory}`);
           process.exit(1);
         }
       } else {
-        console.log('ℹ️  No sitemap path specified. Running analysis on sample SaaS blog dataset...');
+        console.log('ℹ️  No inventory path specified. Running analysis on sample SaaS blog dataset...');
       }
 
       let parsedSitemapData: SitemapInput;
       try {
         parsedSitemapData = SitemapSchema.parse(sitemapData);
       } catch (err: any) {
-        console.error('❌ Sitemap Validation Error:');
+        console.error('❌ Content Inventory Validation Error:');
         err.errors?.forEach((e: any) => {
           console.error(`  - ${e.path.join('.')}: ${e.message}`);
         });

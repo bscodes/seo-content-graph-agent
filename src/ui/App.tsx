@@ -142,7 +142,7 @@ export const App: React.FC = () => {
         </>
       )}
 
-      {/* Upload Custom JSON Sitemap Modal */}
+      {/* Upload Custom JSON Content Inventory Modal */}
       {showUploadModal && (
         <div style={{
           position: 'fixed',
@@ -165,9 +165,9 @@ export const App: React.FC = () => {
             padding: 24,
             boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
           }}>
-            <h3 style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '1.1rem', color: '#F3F4F6' }}>Upload Custom Sitemap JSON</h3>
+            <h3 style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '1.1rem', color: '#F3F4F6' }}>Upload Custom Content Inventory JSON</h3>
             <p style={{ fontSize: '0.8rem', color: '#9CA3AF', marginTop: 4 }}>
-              Paste your website sitemap JSON payload with `pages` array containing `url`, `title`, and `targetKeyword`.
+              Paste your website content inventory JSON payload with `pages` array containing `url`, `title`, and `targetKeyword`.
             </p>
             <textarea
               rows={10}

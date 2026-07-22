@@ -138,4 +138,46 @@ describe('SEOContentGraphAgent Unit Tests', () => {
     expect(state.clusters[0].pageUrls).toContain('B');
     expect(state.clusters[0].pageUrls).toContain('C');
   });
+
+  test('Test 5: Default sample output executes and calculates metrics correctly', async () => {
+    const { SAMPLE_SITEMAP } = await import('../src/sampleData');
+    const agent = new SEOContentGraphAgent(undefined, 0.65);
+    const state = await agent.analyze(SAMPLE_SITEMAP);
+
+    // Metric correctness
+    expect(state.metrics.totalPages).toBe(SAMPLE_SITEMAP.pages.length);
+    expect(state.metrics.clusterCount).toBe(state.clusters.length);
+    expect(state.metrics.recommendedLinks).toBe(state.recommendations.length);
+    expect(state.metrics.avgRelevanceScore).toBeGreaterThanOrEqual(0);
+    expect(state.metrics.pageRankDistributionGain).toBeDefined();
+
+    // Default sample output
+    expect(state.recommendations.length).toBeGreaterThan(0);
+    expect(state.clusters.length).toBeGreaterThan(0);
+  });
+
+  test('Test 6: Duplicate existing links do not break PageRank or logic', async () => {
+    const sitemap: SitemapInput = {
+      pages: [
+        {
+          url: 'https://example.com/a',
+          title: 'Page A',
+          targetKeyword: 'a',
+          existingLinks: ['https://example.com/b', 'https://example.com/b'] // Duplicate existing link
+        },
+        {
+          url: 'https://example.com/b',
+          title: 'Page B',
+          targetKeyword: 'b'
+        }
+      ]
+    };
+    const agent = new SEOContentGraphAgent(undefined, 0.4);
+    const state = await agent.analyze(sitemap);
+
+    // Should not crash and metrics should be generated normally
+    expect(state.metrics.totalPages).toBe(2);
+    expect(state.pages[0].pageRankScore).toBeDefined();
+    expect(state.pages[1].pageRankScore).toBeDefined();
+  });
 });
