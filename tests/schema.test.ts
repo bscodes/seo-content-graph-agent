@@ -50,7 +50,7 @@ describe('Schema Validation Tests', () => {
     expect(() => SitemapSchema.parse(invalidEmpty)).toThrow();
   });
 
-  test('Rejects duplicate URLs', () => {
+  test('Automatically deduplicates duplicate URLs instead of rejecting', () => {
     const duplicates = {
       pages: [
         {
@@ -66,7 +66,9 @@ describe('Schema Validation Tests', () => {
       ]
     };
 
-    expect(() => SitemapSchema.parse(duplicates)).toThrow(/duplicate page URLs/i);
+    const result = SitemapSchema.parse(duplicates);
+    expect(result.pages.length).toBe(1);
+    expect(result.pages[0].title).toBe('Page 1'); // Keeps the first occurrence
   });
 
   test('Validates Thresholds correctly', () => {

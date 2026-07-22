@@ -15,11 +15,15 @@ export const SitemapSchema = z.object({
   url: z.string().url().optional(),
   pages: z.array(PageNodeSchema)
     .min(1, "Sitemap must contain at least one page")
-    .refine(pages => {
-      // Ensure unique URLs
-      const urls = new Set(pages.map(p => p.url));
-      return urls.size === pages.length;
-    }, "Sitemap contains duplicate page URLs")
+    .transform(pages => {
+      // Automatically deduplicate by URL
+      const seen = new Set<string>();
+      return pages.filter(p => {
+        if (seen.has(p.url)) return false;
+        seen.add(p.url);
+        return true;
+      });
+    })
 });
 
 // Threshold validation
