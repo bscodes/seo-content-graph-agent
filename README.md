@@ -64,10 +64,10 @@ Analyze any custom sitemap JSON or the built-in SaaS dataset directly from your 
 
 ```bash
 # Run CLI on default sample dataset
-npx ts-node src/cli.ts analyze
+npm run cli -- analyze
 
 # Run on custom sitemap with 0.75 similarity threshold
-npx ts-node src/cli.ts analyze --sitemap=sitemap.json --threshold=0.75 --output=link-recommendations.json
+npm run cli -- analyze --sitemap=sitemap.json --threshold=0.75 --output=link-recommendations.json
 ```
 
 ---

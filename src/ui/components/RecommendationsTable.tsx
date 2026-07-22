@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { InternalLinkRecommendation } from '../../types';
 import { Copy, Check, ExternalLink } from 'lucide-react';
+import { escapeHtml, ensureHttpsUrl } from '../../utils';
 
 interface RecommendationsTableProps {
   recommendations: InternalLinkRecommendation[];
@@ -30,7 +31,11 @@ export const RecommendationsTable: React.FC<RecommendationsTableProps> = ({
   });
 
   const handleCopyTag = (rec: InternalLinkRecommendation) => {
-    const htmlTag = `<a href="${rec.targetUrl}" title="${rec.targetTitle}">${rec.suggestedAnchorText}</a>`;
+    const safeTitle = escapeHtml(rec.targetTitle);
+    const safeAnchor = escapeHtml(rec.suggestedAnchorText);
+    const safeHref = escapeHtml(ensureHttpsUrl(rec.targetUrl));
+
+    const htmlTag = `<a href="${safeHref}" title="${safeTitle}">${safeAnchor}</a>`;
     navigator.clipboard.writeText(htmlTag);
     setCopiedId(rec.id);
     setTimeout(() => setCopiedId(null), 2000);
