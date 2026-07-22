@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { PageNode, ClusterGroup, InternalLinkRecommendation } from '../../types';
 
 interface GraphCanvasProps {
@@ -33,26 +33,16 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [hoveredNode, setHoveredNode] = useState<RenderNode | null>(null);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Resize canvas
-    const width = canvas.parentElement?.clientWidth || 800;
-    const height = canvas.parentElement?.clientHeight || 600;
-    canvas.width = width;
-    canvas.height = height;
-
-    // Map Cluster Colors
+  const nodes = useMemo(() => {
     const clusterColorMap: Record<string, string> = {};
     clusters.forEach(c => {
       clusterColorMap[c.id] = c.color;
     });
 
-    // Initialize Node Positions clustered around center points
-    const nodes: RenderNode[] = pages.map((page, idx) => {
+    const width = 800;
+    const height = 600;
+
+    return pages.map((page) => {
       const clusterIdx = clusters.findIndex(c => c.id === page.clusterId);
       const angle = (clusterIdx / (clusters.length || 1)) * 2 * Math.PI;
       const centerDist = Math.min(width, height) * 0.25;
@@ -71,16 +61,27 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         color: clusterColorMap[page.clusterId || ''] || '#10B981',
         x: centerX + randomOffsetX,
         y: centerY + randomOffsetY,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
+        vx: 0,
+        vy: 0,
         radius: 8 + (page.pageRankScore || 0.1) * 35,
         pageRank: page.pageRankScore || 0.1
       };
     });
+  }, [pages, clusters]);
 
-    // Animation Loop
-    let animationFrameId: number;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
+    // Resize canvas
+    const width = canvas.parentElement?.clientWidth || 800;
+    const height = canvas.parentElement?.clientHeight || 600;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Adjust nodes to actual width/height if needed (simple translation)
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
@@ -151,13 +152,18 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         const label = node.title.length > 25 ? node.title.slice(0, 22) + '...' : node.title;
         ctx.fillText(label, node.x + node.radius + 6, node.y + 4);
       });
-
-      animationFrameId = requestAnimationFrame(render);
     };
 
     render();
+    
+    // No requestAnimationFrame loop - renders only when state changes.
+  }, [nodes, clusters, recommendations, selectedPageUrl, hoveredNode]);
 
-    // Mouse Interactions
+  // Mouse Interactions (handled outside the render loop)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
     const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -188,11 +194,10 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     canvas.addEventListener('click', handleClick);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('click', handleClick);
     };
-  }, [pages, clusters, recommendations, selectedPageUrl]);
+  }, [nodes, onSelectPage]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>

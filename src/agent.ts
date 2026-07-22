@@ -65,10 +65,10 @@ export class SEOContentGraphAgent {
     });
 
     // Step 2: Cluster based on semantic similarity
-    const { clusters, similarityMatrix } = this.stepCluster(pages, logs);
+    const { clusters, sparseEdges } = this.stepCluster(pages, logs);
 
     // Step 3: Interlink Recommendation Generation
-    const recommendations = this.stepInterlink(pages, clusters, similarityMatrix, logs);
+    const recommendations = this.stepInterlink(pages, clusters, sparseEdges, logs);
 
     // Measure Before/After PageRank
     const newAdjList = buildAdjacencyList(pages, recommendations);
@@ -144,17 +144,24 @@ export class SEOContentGraphAgent {
   // Node B: Cluster & PageRank
   private stepCluster(pages: PageNode[], logs: string[]) {
     const N = pages.length;
-    const similarityMatrix: number[][] = Array.from({ length: N }, () => new Array(N).fill(0));
+    
+    // Instead of a dense NxN matrix, we use a Sparse Graph (Top-K ANN approximation)
+    const sparseEdges = new Map<number, { targetIdx: number; score: number }[]>();
+    const INTERLINK_THRESHOLD = this.similarityThreshold * 0.85;
 
-    // Calculate pairwise cosine similarity matrix
     for (let i = 0; i < N; i++) {
+      const edges: { targetIdx: number; score: number }[] = [];
       for (let j = 0; j < N; j++) {
-        if (i === j) {
-          similarityMatrix[i][j] = 1.0;
-        } else {
-          similarityMatrix[i][j] = cosineSimilarity(pages[i].embedding!, pages[j].embedding!);
+        if (i !== j) {
+          const score = cosineSimilarity(pages[i].embedding!, pages[j].embedding!);
+          if (score >= INTERLINK_THRESHOLD) {
+            edges.push({ targetIdx: j, score });
+          }
         }
       }
+      // Keep only top 50 matches per page to prevent memory bloat on massive graphs
+      edges.sort((a, b) => b.score - a.score);
+      sparseEdges.set(i, edges.slice(0, 50));
     }
 
     // Semantic Clustering (True Connected Components via BFS)
@@ -172,10 +179,11 @@ export class SEOContentGraphAgent {
         const current = queue.shift()!;
         clusterMembers.push(current);
 
-        for (let j = 0; j < N; j++) {
-          if (!visited.has(j) && similarityMatrix[current][j] >= this.similarityThreshold) {
-            visited.add(j);
-            queue.push(j);
+        const currentEdges = sparseEdges.get(current) || [];
+        for (const edge of currentEdges) {
+          if (!visited.has(edge.targetIdx) && edge.score >= this.similarityThreshold) {
+            visited.add(edge.targetIdx);
+            queue.push(edge.targetIdx);
           }
         }
       }
@@ -205,14 +213,14 @@ export class SEOContentGraphAgent {
     }
 
     logs.push(`[AGENT CLUSTER] Formed ${clusters.length} semantic clusters with threshold >= ${this.similarityThreshold}`);
-    return { clusters, similarityMatrix };
+    return { clusters, sparseEdges };
   }
 
   // Node C: Interlink Engine
   private stepInterlink(
     pages: PageNode[],
     clusters: ClusterGroup[],
-    similarityMatrix: number[][],
+    sparseEdges: Map<number, { targetIdx: number; score: number }[]>,
     logs: string[]
   ): InternalLinkRecommendation[] {
     const recommendations: InternalLinkRecommendation[] = [];
@@ -221,22 +229,18 @@ export class SEOContentGraphAgent {
     pages.forEach((sourcePage, i) => {
       // Find candidate target pages
       const candidates: { targetIdx: number; score: number }[] = [];
+      const edges = sparseEdges.get(i) || [];
 
-      pages.forEach((targetPage, j) => {
-        // Invariant 1: Source and Target must be different pages!
-        if (i === j || sourcePage.url === targetPage.url) return;
-
-        const simScore = similarityMatrix[i][j];
+      edges.forEach(edge => {
+        const targetPage = pages[edge.targetIdx];
+        if (sourcePage.url === targetPage.url) return;
         
-        // Target high-relevance pages, with extra weight if in same cluster or pointing to a cluster hub
-        let score = simScore;
+        let score = edge.score;
         if (sourcePage.clusterId === targetPage.clusterId) {
           score += 0.08; // Cluster synergy bonus
         }
 
-        if (simScore >= this.similarityThreshold * 0.85) {
-          candidates.push({ targetIdx: j, score: Math.min(0.99, score) });
-        }
+        candidates.push({ targetIdx: edge.targetIdx, score: Math.min(0.99, score) });
       });
 
       // Sort candidate targets by score descending

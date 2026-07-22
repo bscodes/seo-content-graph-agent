@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { GraphCanvas } from './components/GraphCanvas';
 import { RecommendationsTable } from './components/RecommendationsTable';
 import { SEOContentGraphAgent } from '../agent';
 import { SAMPLE_SITEMAP } from '../sampleData';
 import { SitemapInput } from '../types';
+import { SitemapSchema } from '../schema';
 import { Network, Layers, Link as LinkIcon, Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -42,15 +43,17 @@ export const App: React.FC = () => {
   const handleCustomUploadSubmit = () => {
     try {
       const parsed = JSON.parse(customJsonInput);
-      if (parsed.pages && Array.isArray(parsed.pages)) {
-        setSitemapData(parsed);
-        setShowUploadModal(false);
-        setCustomJsonInput('');
-      } else {
-        alert('Invalid format: JSON must contain a "pages" array.');
-      }
+      const validSitemap = SitemapSchema.parse(parsed);
+      setSitemapData(validSitemap);
+      setShowUploadModal(false);
+      setCustomJsonInput('');
     } catch (e: any) {
-      alert(`JSON Parse Error: ${e.message}`);
+      if (e.errors) {
+        const issues = e.errors.map((err: any) => `${err.path.join('.')}: ${err.message}`).join('\\n');
+        alert(`Validation Error:\\n${issues}`);
+      } else {
+        alert(`JSON Parse Error: ${e.message}`);
+      }
     }
   };
 

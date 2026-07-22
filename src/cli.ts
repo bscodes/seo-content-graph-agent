@@ -6,6 +6,7 @@ import { SEOContentGraphAgent } from './agent.js';
 import { SAMPLE_SITEMAP } from './sampleData.js';
 import { SitemapInput } from './types.js';
 import { OpenAIEmbeddingProvider, FakeEmbeddingProvider } from './embeddings.js';
+import { SitemapSchema, ThresholdSchema } from './schema.js';
 
 const program = new Command();
 
@@ -40,8 +41,27 @@ program
         console.log('ℹ️  No sitemap path specified. Running analysis on sample SaaS blog dataset...');
       }
 
-      const threshold = parseFloat(options.threshold) || 0.65;
-      
+      let parsedSitemapData: SitemapInput;
+      try {
+        parsedSitemapData = SitemapSchema.parse(sitemapData);
+      } catch (err: any) {
+        console.error('❌ Sitemap Validation Error:');
+        err.errors?.forEach((e: any) => {
+          console.error(`  - ${e.path.join('.')}: ${e.message}`);
+        });
+        process.exit(1);
+      }
+
+      let threshold = 0.65;
+      try {
+        // Parse float and validate
+        const rawT = parseFloat(options.threshold);
+        if (isNaN(rawT)) throw new Error("Invalid number format");
+        threshold = ThresholdSchema.parse(rawT);
+      } catch (err: any) {
+        console.error(`❌ Threshold Validation Error: ${err.message || 'Must be a number between 0.0 and 1.0'}`);
+        process.exit(1);
+      }
       const provider = process.env.OPENAI_API_KEY 
         ? new OpenAIEmbeddingProvider() 
         : new FakeEmbeddingProvider();
@@ -55,7 +75,7 @@ program
       const agent = new SEOContentGraphAgent(provider, threshold);
 
       console.log(`⚙️  Running Graph State Machine (Threshold: ${threshold})...\n`);
-      const result = await agent.analyze(sitemapData);
+      const result = await agent.analyze(parsedSitemapData);
 
       result.logs.forEach(log => console.log(`  ${log}`));
 

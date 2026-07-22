@@ -22,8 +22,8 @@ The agent executes a deterministic 3-node state machine workflow:
 
 ```mermaid
 graph TD
-    A[Node A: Sitemap Ingestion] -->|Extract URL, Title, Keywords & Vector Embedding| B[Node B: Semantic Clustering Engine]
-    B -->|NxN Cosine Matrix & PageRank Centrality| C[Node C: Interlink Optimizer]
+    A[Node A: Sitemap Ingestion & Zod Validation] -->|Extract URL, Title, Keywords & Vector Embedding| B[Node B: Semantic Clustering Engine]
+    B -->|Sparse Top-K Cosine Edges & PageRank Centrality| C[Node C: Interlink Optimizer]
     C -->|Invariant Check: Source != Target| D[Output: Content Topology Graph & Copyable Link Snippets]
 
     subgraph "State Machine Pipeline"
@@ -37,7 +37,7 @@ graph TD
 1. **Automated Internal PageRank Efficiency**: Directs search crawler equity from low-traffic orphan pages to revenue-driving pillar content automatically, measuring exact PR flow improvements.
 2. **Contextual Semantic Authority Clustering**: Eliminates keyword cannibalization by grouping articles into focused topical silos that rank higher on Google's Knowledge Graph.
 3. **High-Converting Keyword Anchors**: Replaces generic "click here" links with target keyword anchors that boost SERP keyword relevancy.
-4. **Zero-Touch Programmatic Scale**: Reduces manual SEO audits from 20+ hours per month to a single automated pipeline command or API trigger.
+4. **Zero-Touch Programmatic Scale**: Reduces manual SEO audits from 20+ hours per month to a single automated pipeline command. Built for programmatic-scale processing via $O(N \\times K)$ sparse graph logic, eliminating quadratic memory exhaustion on massive sitemaps.
 
 ---
 
