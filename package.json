@@ -28,7 +28,10 @@
   "author": "Bilal Sevinc",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.17",
+    "ai": "^7.0.34",
     "commander": "^12.0.0",
+    "dotenv": "^17.4.2",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

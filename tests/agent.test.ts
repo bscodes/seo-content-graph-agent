@@ -4,7 +4,7 @@ import { SitemapInput } from '../src/types';
 
 describe('SEOContentGraphAgent Unit Tests', () => {
 
-  test('Test 1: Related blog posts are grouped into semantic clusters', () => {
+  test('Test 1: Related blog posts are grouped into semantic clusters', async () => {
     const sitemap: SitemapInput = {
       pages: [
         {
@@ -40,8 +40,8 @@ describe('SEOContentGraphAgent Unit Tests', () => {
       ]
     };
 
-    const agent = new SEOContentGraphAgent(0.5);
-    const state = agent.analyze(sitemap);
+    const agent = new SEOContentGraphAgent(undefined, 0.5);
+    const state = await agent.analyze(sitemap);
 
     expect(state.pages.length).toBe(5);
     expect(state.clusters.length).toBeGreaterThanOrEqual(1);
@@ -51,7 +51,7 @@ describe('SEOContentGraphAgent Unit Tests', () => {
     expect(mainCluster.pageUrls.length).toBeGreaterThanOrEqual(3);
   });
 
-  test('Test 2: Strict Invariant - No page ever recommends an internal link to itself', () => {
+  test('Test 2: Strict Invariant - No page ever recommends an internal link to itself', async () => {
     const sitemap: SitemapInput = {
       pages: [
         {
@@ -67,8 +67,8 @@ describe('SEOContentGraphAgent Unit Tests', () => {
       ]
     };
 
-    const agent = new SEOContentGraphAgent(0.4);
-    const state = agent.analyze(sitemap);
+    const agent = new SEOContentGraphAgent(undefined, 0.4);
+    const state = await agent.analyze(sitemap);
 
     expect(state.recommendations.length).toBeGreaterThan(0);
     
@@ -78,7 +78,7 @@ describe('SEOContentGraphAgent Unit Tests', () => {
     });
   });
 
-  test('Test 3: Relevance scores are bounded between 0.0 and 1.0 and anchor text is valid', () => {
+  test('Test 3: Relevance scores are bounded between 0.0 and 1.0 and anchor text is valid', async () => {
     const sitemap: SitemapInput = {
       pages: [
         {
@@ -94,8 +94,8 @@ describe('SEOContentGraphAgent Unit Tests', () => {
       ]
     };
 
-    const agent = new SEOContentGraphAgent(0.3);
-    const state = agent.analyze(sitemap);
+    const agent = new SEOContentGraphAgent(undefined, 0.3);
+    const state = await agent.analyze(sitemap);
 
     state.recommendations.forEach(rec => {
       expect(rec.relevanceScore).toBeGreaterThanOrEqual(0.0);

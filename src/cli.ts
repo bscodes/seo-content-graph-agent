@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { SEOContentGraphAgent } from './agent.js';
 import { SAMPLE_SITEMAP } from './sampleData.js';
 import { SitemapInput } from './types.js';
+import { OpenAIEmbeddingProvider, FakeEmbeddingProvider } from './embeddings.js';
 
 const program = new Command();
 
@@ -19,7 +20,7 @@ program
   .option('-s, --sitemap <path>', 'Path to sitemap JSON file')
   .option('-t, --threshold <number>', 'Similarity threshold (0.0 - 1.0)', '0.65')
   .option('-o, --output <path>', 'Output JSON file path')
-  .action((options) => {
+  .action(async (options) => {
     try {
       console.log('🤖 SEO Content Graph Agent v1.0.0');
       console.log('=================================');
@@ -40,10 +41,21 @@ program
       }
 
       const threshold = parseFloat(options.threshold) || 0.65;
-      const agent = new SEOContentGraphAgent(threshold);
+      
+      const provider = process.env.OPENAI_API_KEY 
+        ? new OpenAIEmbeddingProvider() 
+        : new FakeEmbeddingProvider();
+
+      if (process.env.OPENAI_API_KEY) {
+        console.log('🔗 Using OpenAI Embedding Provider');
+      } else {
+        console.log('⚠️  No OPENAI_API_KEY found. Using FakeEmbeddingProvider for tests/demo.');
+      }
+
+      const agent = new SEOContentGraphAgent(provider, threshold);
 
       console.log(`⚙️  Running Graph State Machine (Threshold: ${threshold})...\n`);
-      const result = agent.analyze(sitemapData);
+      const result = await agent.analyze(sitemapData);
 
       result.logs.forEach(log => console.log(`  ${log}`));
 

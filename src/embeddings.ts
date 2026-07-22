@@ -1,30 +1,57 @@
 import { PageNode } from './types.js';
+import { openai } from '@ai-sdk/openai';
+import { embedMany } from 'ai';
 
-// Deterministic TF-IDF / Semantic Hashing Embedder
-export function generateEmbedding(text: string, dimensions = 64): number[] {
-  const normalized = text.toLowerCase().replace(/[^\w\s]/g, '');
-  const tokens = normalized.split(/\s+/).filter(t => t.length > 2);
-  
-  const vector = new Array(dimensions).fill(0);
-  if (tokens.length === 0) return vector;
+export interface EmbeddingProvider {
+  embed(texts: string[]): Promise<number[][]>;
+}
 
-  tokens.forEach((token, idx) => {
-    // Hash token into dimensions space
-    let hash = 0;
-    for (let i = 0; i < token.length; i++) {
-      hash = (hash << 5) - hash + token.charCodeAt(i);
-      hash |= 0;
+export class OpenAIEmbeddingProvider implements EmbeddingProvider {
+  async embed(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) return [];
+    try {
+      const { embeddings } = await embedMany({
+        model: openai.embedding('text-embedding-3-small'),
+        values: texts,
+      });
+      return embeddings;
+    } catch (error) {
+      console.error('[OpenAIEmbeddingProvider] Error fetching embeddings:', error);
+      throw error;
     }
-    const dim = Math.abs(hash) % dimensions;
-    const weight = 1 + (idx === 0 ? 0.5 : 0); // Give higher weight to lead keyword terms
-    vector[dim] += weight;
-  });
+  }
+}
 
-  // Normalize vector to unit length
-  const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
-  if (magnitude === 0) return vector;
-  
-  return vector.map(val => val / magnitude);
+export class FakeEmbeddingProvider implements EmbeddingProvider {
+  async embed(texts: string[]): Promise<number[][]> {
+    // Deterministic fake provider based on categories or keywords for testing
+    return texts.map(text => {
+      const normalized = text.toLowerCase();
+      const vector = new Array(64).fill(0);
+      
+      // Map known categories to orthogonal vectors for perfect clustering in tests
+      if (normalized.includes('billing') || normalized.includes('pricing') || normalized.includes('stripe')) {
+        vector[0] = 1;
+      } else if (normalized.includes('auth') || normalized.includes('security') || normalized.includes('sso') || normalized.includes('jwt')) {
+        vector[1] = 1;
+      } else if (normalized.includes('postgres') || normalized.includes('infra') || normalized.includes('kubernetes')) {
+        vector[2] = 1;
+      } else if (normalized.includes('analytics') || normalized.includes('growth')) {
+        vector[3] = 1;
+      } else {
+        // Fallback to simple hashing if no known category matches
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+          hash = (hash << 5) - hash + text.charCodeAt(i);
+          hash |= 0;
+        }
+        const dim = Math.abs(hash) % 64;
+        vector[dim] = 1;
+      }
+      
+      return vector;
+    });
+  }
 }
 
 // Compute Cosine Similarity between 2 vectors

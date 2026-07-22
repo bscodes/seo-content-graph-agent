@@ -14,10 +14,29 @@ export const App: React.FC = () => {
   const [customJsonInput, setCustomJsonInput] = useState<string>('');
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
 
+  const [graphState, setGraphState] = useState<GraphState | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   // Initialize and run Graph State Machine Agent
-  const graphState = useMemo(() => {
-    const agent = new SEOContentGraphAgent(similarityThreshold);
-    return agent.analyze(sitemapData);
+  useEffect(() => {
+    let isMounted = true;
+    setIsAnalyzing(true);
+    
+    // In browser, FakeEmbeddingProvider will be used as no process.env is injected.
+    const agent = new SEOContentGraphAgent(undefined, similarityThreshold);
+    agent.analyze(sitemapData)
+      .then(state => {
+        if (isMounted) {
+          setGraphState(state);
+          setIsAnalyzing(false);
+        }
+      })
+      .catch(err => {
+        console.error('Analysis failed:', err);
+        if (isMounted) setIsAnalyzing(false);
+      });
+      
+    return () => { isMounted = false; };
   }, [sitemapData, similarityThreshold]);
 
   const handleCustomUploadSubmit = () => {
@@ -44,70 +63,81 @@ export const App: React.FC = () => {
         onUploadCustom={() => setShowUploadModal(true)}
       />
 
-      <div className="metrics-strip">
-        <div className="metric-card">
-          <div className="metric-label">Pages Ingested</div>
-          <div className="metric-value">{graphState.metrics.totalPages}</div>
-          <div className="metric-sub">Sitemap Normalized</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-label">Semantic Clusters</div>
-          <div className="metric-value">{graphState.metrics.clusterCount}</div>
-          <div className="metric-sub"> cosine threshold &ge; {similarityThreshold}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-label">Internal Link Edges</div>
-          <div className="metric-value">{graphState.metrics.recommendedLinks}</div>
-          <div className="metric-sub">{graphState.metrics.avgRelevanceScore * 100}% Avg Relevance</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-label">PageRank Efficiency</div>
-          <div className="metric-value" style={{ color: '#10B981' }}>{graphState.metrics.pageRankDistributionGain}</div>
-          <div className="metric-sub">Cluster Hub Channeling</div>
-        </div>
-      </div>
-
-      <div className="cluster-legend">
-        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280', alignSelf: 'center', fontFamily: 'JetBrains Mono' }}>
-          SEMANTIC CLUSTERS:
-        </span>
-        {graphState.clusters.map(cluster => (
-          <div key={cluster.id} className="cluster-pill">
-            <div className="cluster-dot" style={{ backgroundColor: cluster.color }} />
-            <span>{cluster.name} ({cluster.pageUrls.length} pages)</span>
+      {!graphState ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#9CA3AF' }}>
+          <Sparkles size={32} style={{ marginBottom: 12, color: '#10B981', animation: 'pulse 2s infinite' }} />
+          <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.9rem' }}>
+            {isAnalyzing ? 'Initializing Graph State Machine & Fetching Embeddings...' : 'No data loaded.'}
           </div>
-        ))}
-      </div>
-
-      <div className="app-container">
-        <div className="canvas-panel">
-          <GraphCanvas
-            pages={graphState.pages}
-            clusters={graphState.clusters}
-            recommendations={graphState.recommendations}
-            selectedPageUrl={selectedPageUrl}
-            onSelectPage={setSelectedPageUrl}
-          />
         </div>
-
-        <div className="sidebar-panel">
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #1F2633', background: '#090C10', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '0.85rem', fontWeight: 700, color: '#F3F4F6', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <LinkIcon size={14} color="#10B981" />
-              Internal Link Directives ({graphState.recommendations.length})
-            </span>
-            <span style={{ fontFamily: 'JetBrains Mono', fontSize: '0.7rem', color: '#6B7280' }}>
-              Invariant: source &ne; target
-            </span>
+      ) : (
+        <>
+          <div className="metrics-strip">
+            <div className="metric-card">
+              <div className="metric-label">Pages Ingested</div>
+              <div className="metric-value">{graphState.metrics.totalPages}</div>
+              <div className="metric-sub">Sitemap Normalized</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">Semantic Clusters</div>
+              <div className="metric-value">{graphState.metrics.clusterCount}</div>
+              <div className="metric-sub"> cosine threshold &ge; {similarityThreshold}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">Internal Link Edges</div>
+              <div className="metric-value">{graphState.metrics.recommendedLinks}</div>
+              <div className="metric-sub">{graphState.metrics.avgRelevanceScore * 100}% Avg Relevance</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">PageRank Efficiency</div>
+              <div className="metric-value" style={{ color: '#10B981' }}>{graphState.metrics.pageRankDistributionGain}</div>
+              <div className="metric-sub">Cluster Hub Channeling</div>
+            </div>
           </div>
 
-          <RecommendationsTable
-            recommendations={graphState.recommendations}
-            selectedPageUrl={selectedPageUrl}
-            onSelectPage={setSelectedPageUrl}
-          />
-        </div>
-      </div>
+          <div className="cluster-legend">
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280', alignSelf: 'center', fontFamily: 'JetBrains Mono' }}>
+              SEMANTIC CLUSTERS:
+            </span>
+            {graphState.clusters.map(cluster => (
+              <div key={cluster.id} className="cluster-pill">
+                <div className="cluster-dot" style={{ backgroundColor: cluster.color }} />
+                <span>{cluster.name} ({cluster.pageUrls.length} pages)</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="app-container">
+            <div className="canvas-panel">
+              <GraphCanvas
+                pages={graphState.pages}
+                clusters={graphState.clusters}
+                recommendations={graphState.recommendations}
+                selectedPageUrl={selectedPageUrl}
+                onSelectPage={setSelectedPageUrl}
+              />
+            </div>
+
+            <div className="sidebar-panel">
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #1F2633', background: '#090C10', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '0.85rem', fontWeight: 700, color: '#F3F4F6', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <LinkIcon size={14} color="#10B981" />
+                  Internal Link Directives ({graphState.recommendations.length})
+                </span>
+                <span style={{ fontFamily: 'JetBrains Mono', fontSize: '0.7rem', color: '#6B7280' }}>
+                  Invariant: source &ne; target
+                </span>
+              </div>
+
+              <RecommendationsTable
+                recommendations={graphState.recommendations}
+                selectedPageUrl={selectedPageUrl}
+                onSelectPage={setSelectedPageUrl}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Upload Custom JSON Sitemap Modal */}
       {showUploadModal && (

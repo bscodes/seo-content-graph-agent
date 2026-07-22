@@ -1,5 +1,5 @@
 import { PageNode, InternalLinkRecommendation, ClusterGroup, GraphState, SitemapInput } from './types.js';
-import { generateEmbedding, cosineSimilarity, computePageRankCentrality } from './embeddings.js';
+import { EmbeddingProvider, FakeEmbeddingProvider, cosineSimilarity, computePageRankCentrality } from './embeddings.js';
 
 const CLUSTER_COLORS = [
   '#10B981', // Emerald
@@ -13,8 +13,10 @@ const CLUSTER_COLORS = [
 export class SEOContentGraphAgent {
   private similarityThreshold: number;
   private maxLinksPerPage: number;
+  private provider: EmbeddingProvider;
 
-  constructor(similarityThreshold = 0.65, maxLinksPerPage = 3) {
+  constructor(provider?: EmbeddingProvider, similarityThreshold = 0.65, maxLinksPerPage = 3) {
+    this.provider = provider || new FakeEmbeddingProvider();
     this.similarityThreshold = similarityThreshold;
     this.maxLinksPerPage = maxLinksPerPage;
   }
@@ -24,12 +26,12 @@ export class SEOContentGraphAgent {
   }
 
   // Master 3-Step Execution Pipeline (Ingest -> Cluster -> Interlink)
-  public analyze(input: SitemapInput): GraphState {
+  public async analyze(input: SitemapInput): Promise<GraphState> {
     const logs: string[] = [];
     logs.push(`[AGENT INGEST] Parsing ${input.pages.length} sitemap pages...`);
 
     // Step 1: Ingest & Embed
-    const pages = this.stepIngest(input.pages, logs);
+    const pages = await this.stepIngest(input.pages, logs);
 
     // Step 2: Cluster & Centrality Scoring
     const { clusters, similarityMatrix, pageRankMap } = this.stepCluster(pages, logs);
@@ -65,11 +67,14 @@ export class SEOContentGraphAgent {
   }
 
   // Node A: Ingest
-  private stepIngest(inputPages: SitemapInput['pages'], logs: string[]): PageNode[] {
+  private async stepIngest(inputPages: SitemapInput['pages'], logs: string[]): Promise<PageNode[]> {
+    const textsToEmbed = inputPages.map(page => 
+      `${page.title} ${page.targetKeyword} ${page.category || ''} ${page.contentSnippet || ''}`
+    );
+    
+    const embeddings = await this.provider.embed(textsToEmbed);
+    
     return inputPages.map((page, idx) => {
-      const textToEmbed = `${page.title} ${page.targetKeyword} ${page.category || ''} ${page.contentSnippet || ''}`;
-      const embedding = generateEmbedding(textToEmbed);
-      
       return {
         id: `page-${idx + 1}`,
         url: page.url,
@@ -77,7 +82,7 @@ export class SEOContentGraphAgent {
         targetKeyword: page.targetKeyword,
         category: page.category || 'General',
         contentSnippet: page.contentSnippet,
-        embedding,
+        embedding: embeddings[idx],
         existingLinks: page.existingLinks || []
       };
     });
