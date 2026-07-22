@@ -253,7 +253,7 @@ export class SEOContentGraphAgent {
           existingPairs.add(pairKey);
 
           // Generate contextual anchor text based on target keyword & target title
-          const anchorText = this.generateAnchorText(targetPage.targetKeyword, targetPage.title);
+          const anchorText = this.generateAnchorText(sourcePage.url, targetPage.url, targetPage.targetKeyword, targetPage.title);
           const isSameCluster = sourcePage.clusterId === targetPage.clusterId;
 
           const reasoning = isSameCluster
@@ -279,8 +279,8 @@ export class SEOContentGraphAgent {
     return recommendations;
   }
 
-  // Anchor text generator
-  private generateAnchorText(keyword: string, title: string): string {
+  // Anchor text generator (Deterministic based on source and target)
+  private generateAnchorText(sourceUrl: string, targetUrl: string, keyword: string, title: string): string {
     const formattedKw = keyword.toLowerCase().trim();
     const variations = [
       formattedKw,
@@ -289,6 +289,15 @@ export class SEOContentGraphAgent {
       formattedKw,
       `${formattedKw} best practices`
     ];
-    return variations[Math.floor(Math.random() * variations.length)];
+    
+    // Deterministic hash
+    const key = sourceUrl + targetUrl;
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash << 5) - hash + key.charCodeAt(i);
+      hash |= 0;
+    }
+    
+    return variations[Math.abs(hash) % variations.length];
   }
 }
