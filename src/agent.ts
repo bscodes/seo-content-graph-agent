@@ -157,21 +157,25 @@ export class SEOContentGraphAgent {
       }
     }
 
-    // Semantic Clustering (Greedy Graph Connected Components)
+    // Semantic Clustering (True Connected Components via BFS)
     const visited = new Set<number>();
     const clusters: ClusterGroup[] = [];
 
     for (let i = 0; i < N; i++) {
       if (visited.has(i)) continue;
 
-      const clusterMembers: number[] = [i];
+      const clusterMembers: number[] = [];
+      const queue: number[] = [i];
       visited.add(i);
 
-      for (let j = 0; j < N; j++) {
-        if (i !== j && !visited.has(j)) {
-          if (similarityMatrix[i][j] >= this.similarityThreshold) {
-            clusterMembers.push(j);
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        clusterMembers.push(current);
+
+        for (let j = 0; j < N; j++) {
+          if (!visited.has(j) && similarityMatrix[current][j] >= this.similarityThreshold) {
             visited.add(j);
+            queue.push(j);
           }
         }
       }

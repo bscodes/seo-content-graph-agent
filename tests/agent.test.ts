@@ -104,4 +104,38 @@ describe('SEOContentGraphAgent Unit Tests', () => {
       expect(rec.suggestedAnchorText.length).toBeGreaterThan(0);
     });
   });
+
+  test('Test 4: Transitive Chain Connected Components Clustering', async () => {
+    // Custom provider to simulate A -> B -> C similarity chain
+    // A and B have cosine sim ~0.707
+    // B and C have cosine sim ~0.707
+    // A and C have cosine sim 0.0
+    const mockProvider = {
+      embed: async (texts: string[]) => {
+        return texts.map(text => {
+          if (text.includes('Page A')) return [1.0, 0.0, 0.0];
+          if (text.includes('Page B')) return [0.707, 0.707, 0.0];
+          if (text.includes('Page C')) return [0.0, 1.0, 0.0];
+          return [0, 0, 1];
+        });
+      }
+    };
+
+    const sitemap: SitemapInput = {
+      pages: [
+        { url: 'A', title: 'Page A', targetKeyword: 'A' },
+        { url: 'B', title: 'Page B', targetKeyword: 'B' },
+        { url: 'C', title: 'Page C', targetKeyword: 'C' }
+      ]
+    };
+
+    const agent = new SEOContentGraphAgent(mockProvider, 0.65);
+    const state = await agent.analyze(sitemap);
+
+    // B connects A and C, so they should form a single connected component cluster.
+    expect(state.clusters.length).toBe(1);
+    expect(state.clusters[0].pageUrls).toContain('A');
+    expect(state.clusters[0].pageUrls).toContain('B');
+    expect(state.clusters[0].pageUrls).toContain('C');
+  });
 });
