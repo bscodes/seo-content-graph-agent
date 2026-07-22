@@ -2,9 +2,9 @@
 
 import { Command } from 'commander';
 import * as fs from 'fs';
-import { SEOContentGraphAgent } from './agent';
-import { SAMPLE_SITEMAP } from './sampleData';
-import { SitemapInput } from './types';
+import { SEOContentGraphAgent } from './agent.js';
+import { SAMPLE_SITEMAP } from './sampleData.js';
+import { SitemapInput } from './types.js';
 
 const program = new Command();
 

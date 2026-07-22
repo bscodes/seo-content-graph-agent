@@ -1,4 +1,4 @@
-import { PageNode } from './types';
+import { PageNode } from './types.js';
 
 // Deterministic TF-IDF / Semantic Hashing Embedder
 export function generateEmbedding(text: string, dimensions = 64): number[] {

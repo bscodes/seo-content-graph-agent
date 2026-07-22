@@ -30,3 +30,6 @@ jobs:
 
       - name: Build Production Artifacts
         run: npm run build
+
+      - name: Smoke Test CLI Binary
+        run: npm run smoke

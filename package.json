@@ -9,9 +9,11 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build && npm run build:cli",
+    "build:cli": "tsc -p tsconfig.cli.json",
     "preview": "vite preview",
-    "cli": "tsx src/cli.ts",
+    "cli": "node dist/cli.js",
+    "smoke": "node dist/cli.js analyze --threshold 0.8",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -36,6 +38,7 @@
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
+    "netlify-cli": "^26.2.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
     "vite": "^5.1.6",

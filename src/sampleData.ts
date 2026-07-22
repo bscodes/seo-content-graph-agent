@@ -1,4 +1,4 @@
-import { SitemapInput } from './types';
+import { SitemapInput } from './types.js';
 
 export const SAMPLE_SITEMAP: SitemapInput = {
   url: 'https://api.acme-saas.com/sitemap.json',

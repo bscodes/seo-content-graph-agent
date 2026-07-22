@@ -1,5 +1,5 @@
-import { PageNode, InternalLinkRecommendation, ClusterGroup, GraphState, SitemapInput } from './types';
-import { generateEmbedding, cosineSimilarity, computePageRankCentrality } from './embeddings';
+import { PageNode, InternalLinkRecommendation, ClusterGroup, GraphState, SitemapInput } from './types.js';
+import { generateEmbedding, cosineSimilarity, computePageRankCentrality } from './embeddings.js';
 
 const CLUSTER_COLORS = [
   '#10B981', // Emerald
