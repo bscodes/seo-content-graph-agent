@@ -73,10 +73,10 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
   return Math.min(1.0, Math.max(0.0, sim));
 }
 
-// PageRank Centrality Calculator over similarity adjacency matrix
+// PageRank Centrality Calculator over directed adjacency list
 export function computePageRankCentrality(
   pages: PageNode[],
-  similarityMatrix: number[][],
+  adjacencyList: number[][],
   iterations = 20,
   dampingFactor = 0.85
 ): Record<string, number> {
@@ -88,26 +88,35 @@ export function computePageRankCentrality(
   for (let iter = 0; iter < iterations; iter++) {
     const newRanks = new Array(N).fill((1 - dampingFactor) / N);
     
+    let danglingSum = 0;
     for (let i = 0; i < N; i++) {
-      let degreeSum = 0;
-      for (let j = 0; j < N; j++) {
-        if (i !== j) degreeSum += similarityMatrix[j][i];
+      if (adjacencyList[i].length === 0) {
+        danglingSum += ranks[i];
       }
+    }
+    
+    const danglingDistribution = (dampingFactor * danglingSum) / N;
+    for (let i = 0; i < N; i++) {
+      newRanks[i] += danglingDistribution;
+    }
 
-      if (degreeSum > 0) {
-        for (let j = 0; j < N; j++) {
-          if (i !== j && similarityMatrix[j][i] > 0) {
-            newRanks[i] += dampingFactor * ranks[j] * (similarityMatrix[j][i] / degreeSum);
-          }
+    for (let j = 0; j < N; j++) {
+      const outEdges = adjacencyList[j];
+      const outDegree = outEdges.length;
+      if (outDegree > 0) {
+        const share = (dampingFactor * ranks[j]) / outDegree;
+        for (const target of outEdges) {
+          newRanks[target] += share;
         }
       }
     }
+    
     ranks = newRanks;
   }
 
   const result: Record<string, number> = {};
   pages.forEach((page, idx) => {
-    result[page.url] = parseFloat(ranks[idx].toFixed(4));
+    result[page.url] = ranks[idx];
   });
 
   return result;

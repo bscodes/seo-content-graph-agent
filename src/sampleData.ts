@@ -3,6 +3,18 @@ import { SitemapInput } from './types.js';
 export const SAMPLE_SITEMAP: SitemapInput = {
   url: 'https://api.acme-saas.com/sitemap.json',
   pages: [
+    {
+      url: 'https://acme-saas.com/blog',
+      title: 'Acme SaaS Engineering Blog',
+      targetKeyword: 'saas engineering blog',
+      category: 'General',
+      contentSnippet: 'Welcome to the Acme SaaS engineering blog. We write about billing, security, and cloud infrastructure.',
+      existingLinks: [
+        'https://acme-saas.com/blog/saas-billing-models-guide',
+        'https://acme-saas.com/blog/jwt-vs-session-cookies-security',
+        'https://acme-saas.com/blog/zero-downtime-postgres-migrations'
+      ]
+    },
     // Cluster 1: SaaS Billing & Subscriptions
     {
       url: 'https://acme-saas.com/blog/saas-billing-models-guide',

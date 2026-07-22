@@ -10,6 +10,30 @@ const CLUSTER_COLORS = [
   '#06B6D4', // Cyan
 ];
 
+function buildAdjacencyList(pages: PageNode[], additionalLinks: {sourceUrl: string, targetUrl: string}[] = []): number[][] {
+  const urlToIndex = new Map(pages.map((p, i) => [p.url, i]));
+  const adjList = Array.from({ length: pages.length }, () => [] as number[]);
+  
+  pages.forEach((p, i) => {
+    (p.existingLinks || []).forEach(targetUrl => {
+      const targetIdx = urlToIndex.get(targetUrl);
+      if (targetIdx !== undefined && targetIdx !== i) {
+        adjList[i].push(targetIdx);
+      }
+    });
+  });
+
+  additionalLinks.forEach(link => {
+    const sourceIdx = urlToIndex.get(link.sourceUrl);
+    const targetIdx = urlToIndex.get(link.targetUrl);
+    if (sourceIdx !== undefined && targetIdx !== undefined && sourceIdx !== targetIdx) {
+      adjList[sourceIdx].push(targetIdx);
+    }
+  });
+
+  return adjList.map(edges => Array.from(new Set(edges)));
+}
+
 export class SEOContentGraphAgent {
   private similarityThreshold: number;
   private maxLinksPerPage: number;
@@ -33,11 +57,38 @@ export class SEOContentGraphAgent {
     // Step 1: Ingest & Embed
     const pages = await this.stepIngest(input.pages, logs);
 
-    // Step 2: Cluster & Centrality Scoring
-    const { clusters, similarityMatrix, pageRankMap } = this.stepCluster(pages, logs);
+    // Compute Base PageRank from existing links
+    const baseAdjList = buildAdjacencyList(pages);
+    const basePageRankMap = computePageRankCentrality(pages, baseAdjList);
+    pages.forEach(p => {
+      p.pageRankScore = basePageRankMap[p.url] || 0;
+    });
+
+    // Step 2: Cluster based on semantic similarity
+    const { clusters, similarityMatrix } = this.stepCluster(pages, logs);
 
     // Step 3: Interlink Recommendation Generation
-    const recommendations = this.stepInterlink(pages, clusters, similarityMatrix, pageRankMap, logs);
+    const recommendations = this.stepInterlink(pages, clusters, similarityMatrix, logs);
+
+    // Measure Before/After PageRank
+    const newAdjList = buildAdjacencyList(pages, recommendations);
+    const newPageRankMap = computePageRankCentrality(pages, newAdjList);
+
+    // Calculate actual PageRank gain for targeted pages
+    let totalGain = 0;
+    let targetCount = 0;
+    const targetedUrls = new Set(recommendations.map(r => r.targetUrl));
+    
+    targetedUrls.forEach(url => {
+      const baseScore = basePageRankMap[url] || 0;
+      const newScore = newPageRankMap[url] || 0;
+      if (baseScore > 0) {
+        totalGain += ((newScore - baseScore) / baseScore) * 100;
+        targetCount++;
+      }
+    });
+
+    const avgPrGain = targetCount > 0 ? (totalGain / targetCount) : 0;
 
     // Calculate Summary Metrics
     const avgScore = recommendations.length > 0
@@ -49,7 +100,9 @@ export class SEOContentGraphAgent {
       clusterCount: clusters.length,
       recommendedLinks: recommendations.length,
       avgRelevanceScore: parseFloat(avgScore.toFixed(2)),
-      pageRankDistributionGain: `+${(clusters.length * 14.2).toFixed(1)}% PageRank Efficiency`
+      pageRankDistributionGain: targetCount > 0 
+        ? `+${avgPrGain.toFixed(1)}% Avg Target PR Gain` 
+        : '0% (No new links)'
     };
 
     logs.push(`[AGENT COMPLETE] Generated ${recommendations.length} optimal internal links across ${clusters.length} clusters.`);
@@ -104,12 +157,6 @@ export class SEOContentGraphAgent {
       }
     }
 
-    // Calculate PageRank Centrality
-    const pageRankMap = computePageRankCentrality(pages, similarityMatrix);
-    pages.forEach(p => {
-      p.pageRankScore = pageRankMap[p.url] || 0;
-    });
-
     // Semantic Clustering (Greedy Graph Connected Components)
     const visited = new Set<number>();
     const clusters: ClusterGroup[] = [];
@@ -154,7 +201,7 @@ export class SEOContentGraphAgent {
     }
 
     logs.push(`[AGENT CLUSTER] Formed ${clusters.length} semantic clusters with threshold >= ${this.similarityThreshold}`);
-    return { clusters, similarityMatrix, pageRankMap };
+    return { clusters, similarityMatrix };
   }
 
   // Node C: Interlink Engine
@@ -162,7 +209,6 @@ export class SEOContentGraphAgent {
     pages: PageNode[],
     clusters: ClusterGroup[],
     similarityMatrix: number[][],
-    pageRankMap: Record<string, number>,
     logs: string[]
   ): InternalLinkRecommendation[] {
     const recommendations: InternalLinkRecommendation[] = [];
